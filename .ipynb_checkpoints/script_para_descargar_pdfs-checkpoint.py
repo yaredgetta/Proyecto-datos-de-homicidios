@@ -1,17 +1,16 @@
 import requests
 import os
 from datetime import datetime, timedelta
-import platform  # Import platform to check the operating system
 
 # Define la URL base
 base_url = "http://www.informeseguridad.cns.gob.mx/files/homicidios_{}.pdf"
 
 # Define la fecha de inicio y la fecha de fin
 start_date = datetime(2024, 9, 20)  # Fecha de inicio
-end_date = datetime(2024, 10, 2)    # Fecha de fin
+end_date = datetime(2024, 10, 2)   # Fecha de fin
 
-# Especifica el directorio para almacenar los PDFs basado en el sistema operativo
-pdf_directory = r'C:\Users\alexi\OneDrive\Desktop\adoo\pdfs' if platform.system() == 'Windows' else '/home/isokssd/Documents/JiraProject/Proyecto-datos-de-homicidios/pdfs'
+# Especifica el directorio para almacenar los PDFs
+pdf_directory = r'C:\Users\alexi\OneDrive\Desktop\adoo\pdfs'
 os.makedirs(pdf_directory, exist_ok=True)  # Crea el directorio si no existe
 
 # Itera sobre cada día en el rango de fechas
