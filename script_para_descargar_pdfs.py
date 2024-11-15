@@ -5,6 +5,7 @@ import platform  # Import platform to check the operating system
 import json
 from pathlib import Path
 
+
 # Define la URL base
 base_url = "http://www.informeseguridad.cns.gob.mx/files/homicidios_{}.pdf"
 
@@ -40,36 +41,3 @@ def get_pdf_directory():
 # Obtener el directorio de PDFs
 pdf_directory = get_pdf_directory()
 print(f"Los PDFs se guardarán en: {pdf_directory}")
-
-
-
-
-
-
-
-# Itera sobre cada día en el rango de fechas
-current_date = start_date
-while current_date <= end_date:
-    # Formatea la fecha en el formato requerido (ddmmyyyy)
-    formatted_date = current_date.strftime('%d%m%Y')
-    
-    # Genera la URL del PDF
-    pdf_url = base_url.format(formatted_date)
-    
-    # Verifica el enlace antes de descargar
-    print(f"Descargando: {pdf_url}")
-    
-    # Realiza la solicitud para obtener el PDF
-    pdf_response = requests.get(pdf_url)
-
-    # Verifica si la solicitud fue exitosa
-    if pdf_response.status_code == 200:
-        pdf_name = os.path.join(pdf_directory, f'homicidios_{formatted_date}.pdf')  # Nombre del archivo
-        with open(pdf_name, 'wb') as f:
-            f.write(pdf_response.content)
-        print(f"Descargado: {pdf_name}")
-    else:
-        print(f"Error al descargar {pdf_url}: {pdf_response.status_code}")
-
-    # Avanza al siguiente día
-    current_date += timedelta(days=1)
