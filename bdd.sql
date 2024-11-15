@@ -7,14 +7,6 @@ BEGIN;
 -- CREATE DATABASE bdd;
 -- \c bdd;
 
--- Tabla: entidades
-CREATE TABLE entidades (
-    id BIGSERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL UNIQUE,
-    poblacion INTEGER NOT NULL DEFAULT 0,  -- Cambié a NOT NULL
-    region VARCHAR(100) NOT NULL DEFAULT '',  -- Cambié a NOT NULL
-);
-
 -- Tabla: homicidios
 CREATE TABLE homicidios (
     id BIGSERIAL PRIMARY KEY,
@@ -28,15 +20,6 @@ CREATE TABLE homicidios (
     fuente VARCHAR(255) NOT NULL DEFAULT '',  -- Cambié a NOT NULL
 );
 
--- Tabla: usuarios
-CREATE TABLE usuarios (
-    id BIGSERIAL PRIMARY KEY,
-    nombre VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    rol VARCHAR(50) NOT NULL DEFAULT '',  -- Cambié a NOT NULL
-    contrasena_hash VARCHAR(255) NOT NULL,
-    fecha_creacion TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
 
 COMMIT;
 
