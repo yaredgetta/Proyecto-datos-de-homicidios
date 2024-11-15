@@ -1,7 +1,7 @@
-# graficas.py
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns  # For boxplots and enhanced visualizations
 import importlib.util
 
 def cargar_modulo(ruta_archivo):
@@ -18,25 +18,32 @@ def cargar_datos():
         try:
             homicidios_df = pd.read_sql_query("SELECT * FROM homicidios;", conn)
             conn.close()
+
+            # Ensure that 'fecha' is a datetime type
+            homicidios_df['fecha'] = pd.to_datetime(homicidios_df['fecha'], errors='coerce')
+
             return homicidios_df
         except Exception as e:
             st.error(f"Error al cargar datos: {e}")
     return None
 
-def filtrar_datos(homicidios_df, fecha_inicio, fecha_fin, municipio, genero):
+
+def filtrar_datos(homicidios_df, fecha_inicio, fecha_fin, municipios, genero):
     if fecha_inicio and fecha_fin:
         homicidios_df = homicidios_df[
             (homicidios_df['fecha'] >= fecha_inicio) &
             (homicidios_df['fecha'] <= fecha_fin)
         ]
-    if municipio:
-        homicidios_df = homicidios_df[homicidios_df['municipio'].str.contains(municipio, case=False, na=False)]
+    if municipios:
+        homicidios_df = homicidios_df[homicidios_df['municipio'].isin(municipios)]
+
     if genero == "Hombres":
         homicidios_df = homicidios_df[homicidios_df['hombres'] > 0]
     elif genero == "Mujeres":
         homicidios_df = homicidios_df[homicidios_df['mujeres'] > 0]
     elif genero == "No Identificado":
         homicidios_df = homicidios_df[homicidios_df['no_identificado'] > 0]
+
     return homicidios_df
 
 def graficar_datos(homicidios_df, tipo_grafico):
@@ -57,11 +64,42 @@ def graficar_datos(homicidios_df, tipo_grafico):
         st.pyplot(fig)
 
     elif tipo_grafico == "Comparación de Homicidios por Género y Municipio":
-        homicidios_por_genero = homicidios_df.groupby("municipio")[["hombres", "mujeres", "no_identificado"]].sum().head(10)
+        homicidios_por_genero = homicidios_df.groupby("municipio")[["hombres", "mujeres", "no_identificado"]].sum()
         homicidios_por_genero.plot(kind="bar", stacked=True, figsize=(10, 6), color=["blue", "pink", "gray"])
-        plt.title("Comparación por Género en los Principales Municipios")
+        plt.title("Comparación por Género en los Municipios Seleccionados")
         plt.xlabel("Municipios")
         plt.ylabel("Cantidad")
+        plt.xticks(rotation=45)
+        st.pyplot(plt)
+
+    elif tipo_grafico == "Histograma de Homicidios":
+        plt.figure(figsize=(10, 6))
+        sns.histplot(homicidios_df['num_muertos'], bins=20, kde=True)
+        plt.title("Distribución de Homicidios")
+        plt.xlabel("Número de Muertos")
+        plt.ylabel("Frecuencia")
+        st.pyplot(plt)
+
+    elif tipo_grafico == "Tendencia Mensual de Homicidios":
+        homicidios_df['mes_año'] = homicidios_df['fecha'].dt.to_period('M')
+        tendencia_mensual = homicidios_df.groupby('mes_año')['num_muertos'].sum().reset_index()
+        tendencia_mensual['mes_año'] = tendencia_mensual['mes_año'].dt.to_timestamp()
+
+        plt.figure(figsize=(10, 6))
+        plt.plot(tendencia_mensual['mes_año'], tendencia_mensual['num_muertos'], marker='o')
+        plt.title("Tendencia Mensual de Homicidios")
+        plt.xlabel("Mes")
+        plt.ylabel("Total de Homicidios")
+        plt.xticks(rotation=45)
+        st.pyplot(plt)
+
+    elif tipo_grafico == "Box Plot de Homicidios por Municipio":
+        plt.figure(figsize=(12, 6))
+        sns.boxplot(x='municipio', y='num_muertos', data=homicidios_df)
+        plt.title("Box Plot de Homicidios por Municipio")
+        plt.xlabel("Municipio")
+        plt.ylabel("Número de Muertos")
+        plt.xticks(rotation=45)
         st.pyplot(plt)
 
 def main():
@@ -75,31 +113,47 @@ def main():
 
     if homicidios_df is not None:
         st.sidebar.header("Filtros de Análisis")
-        fecha_inicio = st.sidebar.date_input("Fecha Inicio", value=pd.to_datetime(homicidios_df["fecha"].min()))
-        fecha_fin = st.sidebar.date_input("Fecha Fin", value=pd.to_datetime(homicidios_df["fecha"].max()))
-        municipio = st.sidebar.text_input("Municipio")
-        genero = st.sidebar.selectbox("Género", ["Todos", "Hombres", "Mujeres", "No Identificado"])
+        
+        # Ensure date inputs are treated as pd.Timestamp
+        fecha_inicio = pd.to_datetime(st.sidebar.date_input("Fecha Inicio", value=pd.to_datetime(homicidios_df["fecha"].min())), format='%Y-%m-%d')
+        fecha_fin = pd.to_datetime(st.sidebar.date_input("Fecha Fin", value=pd.to_datetime(homicidios_df["fecha"].max())), format='%Y-%m-%d')
+        
+        unique_municipios = homicidios_df['municipio'].unique()
+        municipios = st.sidebar.multiselect("Selecciona Municipios", unique_municipios)
 
-        homicidios_filtrados = filtrar_datos(homicidios_df, fecha_inicio, fecha_fin, municipio, genero if genero != "Todos" else None)
+        genero = st.sidebar.selectbox("Género", ["Todos", "Hombres", "Mujeres", "No Identificado"])
+        stat_type = st.sidebar.selectbox("Tipo de Estadística", ["Media", "Mediana", "Máximo", "Mínimo"])
+
+        # Filter data
+        homicidios_filtrados = filtrar_datos(homicidios_df, fecha_inicio, fecha_fin, municipios, genero if genero != "Todos" else None)
 
         st.write("### Datos Filtrados")
         st.dataframe(homicidios_filtrados)
 
         st.write("### Tablas Resumidas")
-        
-        # Tabla resumida por Municipio
         st.write("**Por Municipio:**")
-        # Filtrar solo las columnas numéricas
         numeric_df = homicidios_filtrados.select_dtypes(include=['float64', 'int64'])
-        if not numeric_df.empty:  # Verifica si hay columnas numéricas
-            resumen_municipal = numeric_df.groupby(homicidios_filtrados['municipio']).sum()
+
+        if not numeric_df.empty:
+            resumen_municipal = numeric_df.groupby(homicidios_filtrados['municipio']).agg(['mean', 'median', 'max', 'min'])
             st.dataframe(resumen_municipal)
 
-        # Tabla resumida por Fecha
         st.write("**Por Fecha:**")
-        if not numeric_df.empty:  # Verifica si hay columnas numéricas
-            resumen_fecha = numeric_df.groupby(homicidios_filtrados['fecha']).sum()
+        if not numeric_df.empty:
+            resumen_fecha = numeric_df.groupby(homicidios_filtrados['fecha']).agg(['mean', 'median', 'max', 'min'])
             st.dataframe(resumen_fecha)
+
+        st.sidebar.header("Gráficos")
+        tipo_grafico = st.sidebar.selectbox("Selecciona un gráfico", [
+            "Distribución de Homicidios por Género",
+            "Total de Muertos por Municipio",
+            "Comparación de Homicidios por Género y Municipio",
+            "Histograma de Homicidios",
+            "Tendencia Mensual de Homicidios",
+            "Box Plot de Homicidios por Municipio"
+        ])
+
+        graficar_datos(homicidios_filtrados, tipo_grafico)
     else:
         st.error("No se pudieron cargar los datos. Verifica la conexión a la base de datos.")
 
