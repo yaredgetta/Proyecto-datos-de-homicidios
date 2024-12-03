@@ -1,5 +1,6 @@
 import requests
 import os
+import sys
 from datetime import datetime, timedelta
 import json
 from pathlib import Path
@@ -53,4 +54,7 @@ def descargar_pdfs(fecha_inicio, fecha_fin):
 # La función de entrada para pruebas o ejecución directa sería opcional, pero asegúrate de no ejecutarla al importar
 if __name__ == "__main__":
     # Puede permanecer vacío ya que estás llamando estas funciones desde otro lugar
-    pass
+    if len(sys.argv) > 1 and sys.argv[1] == "--setup":
+        get_pdf_directory()
+    else:
+        pass
