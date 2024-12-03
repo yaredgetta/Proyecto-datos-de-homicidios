@@ -60,6 +60,14 @@ DB_NAME=homicidios
 CSV_FOLDER=ruta/a/carpeta/csv
 ```
 
+## Setup
+
+Para inicializar el directorio donde se almacenarán los PDF's
+```bash
+python script_para_descargar_pdfs.py --setup
+```
+Adicionalmente, hay que crear e inicializar la base de datos con el archivo bdd.sql
+
 ## Uso
 
 ### Ejecutar la Aplicación
