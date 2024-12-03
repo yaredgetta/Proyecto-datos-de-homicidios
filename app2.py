@@ -82,6 +82,13 @@ query_totales = """
         SUM(h.mujer) AS total_mujeres
     FROM hechos h;
 """
+
+# Función para formatear los nombres de las columnas
+def format_column_names(df):
+    df.columns = [col.replace("_", " ").title() for col in df.columns]  # Capitaliza cada palabra
+    return df
+
+
 ##############################################################################################################################################################
 
 # Interfaz del dashboard
@@ -151,24 +158,25 @@ with tab1:
         st.subheader("Resumen por Entidad")
         df_total_muertos = execute_query(query_total_muertos)
         if df_total_muertos is not None:
+            df_total_muertos = format_column_names(df_total_muertos)
             st.dataframe(df_total_muertos)
 
     with col2:
         st.subheader("Top 5 Entidades con Más Homicidios")
         if df_total_muertos is not None:
+            # Asegúrate de que las columnas tengan el formato correcto
+            df_total_muertos = format_column_names(df_total_muertos)
+
             # Ordenar las entidades por número de homicidios y seleccionar las 5 primeras
-            top_5_entidades = df_total_muertos.nlargest(5, 'total_muertos')
-
-            # Preparar los datos para la gráfica
-            categorias = top_5_entidades['entidad']
-            valores = top_5_entidades['total_muertos']
-
+            top_5_entidades = df_total_muertos.nlargest(5, 'Total Muertos')  # Usar el nombre capitalizado
+            categorias = top_5_entidades['Entidad']
+            valores = top_5_entidades['Total Muertos']
+            
             # Crear la gráfica
             fig, ax = plt.subplots(figsize=(6, 2.5))
             fig.patch.set_facecolor('#111111')  # Fondo negro para toda la figura
             ax.set_facecolor('#111111')  # Fondo negro para el área de la gráfica
             ax.barh(categorias, valores, color='#10177a')  # Barras en azul
-            
 
             # Estilo de texto: letras en blanco
             ax.set_title("Top 5 Entidades con Más Homicidios", color='white')
@@ -179,31 +187,36 @@ with tab1:
             # Mostrar la gráfica
             st.pyplot(fig)
 
-    with col3:
-        # Fila 3: Tabla filtrada por entidad
-        st.subheader("Filtrar por Entidad")
-        entidad = st.selectbox(
-            "Selecciona una entidad:",
-            df_total_muertos["entidad"].unique() if df_total_muertos is not None else []
-        )
 
-        if entidad:
-            query_filtrado = f"""
-                SELECT 
-                    m.nombre_municipio AS municipio,
-                    SUM(h.muertos) AS total_muertos,
-                    SUM(h.hombre) AS total_hombres,
-                    SUM(h.mujer) AS total_mujeres
-                FROM hechos h
-                JOIN municipios m ON h.id_municipio = m.id_municipio
-                JOIN entidades e ON m.id_entidad = e.id_entidad
-                WHERE e.nombre_entidad = '{entidad}'
-                GROUP BY m.nombre_municipio
-                ORDER BY total_muertos DESC;
-            """
-            df_filtrado = execute_query(query_filtrado)
-            if df_filtrado is not None:
-                st.dataframe(df_filtrado)
+    with col3:
+        st.subheader("Filtrar por Entidad")
+        if df_total_muertos is not None:
+            # Formatear nombres de columnas
+            df_total_muertos = format_column_names(df_total_muertos)
+            entidad = st.selectbox(
+                "Selecciona una entidad:",
+                df_total_muertos["Entidad"].unique()  # Usar "Entidad" capitalizado
+            )
+
+            if entidad:
+                query_filtrado = f"""
+                    SELECT 
+                        m.nombre_municipio AS municipio,
+                        SUM(h.muertos) AS total_muertos,
+                        SUM(h.hombre) AS total_hombres,
+                        SUM(h.mujer) AS total_mujeres
+                    FROM hechos h
+                    JOIN municipios m ON h.id_municipio = m.id_municipio
+                    JOIN entidades e ON m.id_entidad = e.id_entidad
+                    WHERE e.nombre_entidad = '{entidad}'
+                    GROUP BY m.nombre_municipio
+                    ORDER BY total_muertos DESC;
+                """
+                df_filtrado = execute_query(query_filtrado)
+                if df_filtrado is not None:
+                    df_filtrado = format_column_names(df_filtrado)
+                    st.dataframe(df_filtrado)
+
 
 ##############################################################################################################################################################
 
@@ -250,80 +263,88 @@ with tab2:
             st.pyplot(fig)
 
         with col1:
-            # Tabla con datos de hombres y mujeres por entidad
             st.subheader("Hombres y Mujeres por Entidad")
-            df_hombres_mujeres = df_total_muertos[['entidad', 'total_hombres', 'total_mujeres']]
-            st.dataframe(df_hombres_mujeres)
+            if df_total_muertos is not None:
+                df_total_muertos = format_column_names(df_total_muertos)  # Asegúrate de que las columnas estén formateadas
+                df_hombres_mujeres = df_total_muertos[['Entidad', 'Total Hombres', 'Total Mujeres']]
+                st.dataframe(df_hombres_mujeres)
 
-        with col3:    
-            # Tabla con Top 5 de entidades con más homicidios de mujeres
+
+        with col3:
             st.subheader("Top 5 Entidades con Más Homicidios de Mujeres")
-            top_5_mujeres = df_total_muertos.nlargest(5, 'total_mujeres')[['entidad', 'total_mujeres']]
-            st.dataframe(top_5_mujeres)
+            if df_total_muertos is not None:
+                df_total_muertos = format_column_names(df_total_muertos)  # Asegúrate de formatear los nombres
+                top_5_mujeres = df_total_muertos.nlargest(5, 'Total Mujeres')[['Entidad', 'Total Mujeres']]
+                st.dataframe(top_5_mujeres)
+
 
             # Tabla con Top 5 de entidades con más homicidios de hombres
             st.subheader("Top 5 Entidades con Más Homicidios de Hombres")
-            top_5_hombres = df_total_muertos.nlargest(5, 'total_hombres')[['entidad', 'total_hombres']]
-            st.dataframe(top_5_hombres)
+            if df_total_muertos is not None:
+                top_5_hombres = df_total_muertos.nlargest(5, 'Total Hombres')[['Entidad', 'Total Hombres']]
+                st.dataframe(top_5_hombres)
+
 
 #######################################################################################################################################################
 
 
 with tab3:
+
     st.subheader("Comparativa de Homicidios y Totales por Entidad")
+    col1, col2 = st.columns([3, 2])  # Ajustar tamaño de columnas
+    with col1:
+        # Selector de las dos entidades
+        entidades_disponibles = df_total_muertos["Entidad"].unique() if df_total_muertos is not None else []
+        entidad_1 = st.selectbox("Selecciona la primera entidad:", entidades_disponibles, key="entidad_1")
+        entidad_2 = st.selectbox("Selecciona la segunda entidad:", entidades_disponibles, key="entidad_2")
 
-    # Selector de las dos entidades
-    entidades_disponibles = df_total_muertos["entidad"].unique() if df_total_muertos is not None else []
-    entidad_1 = st.selectbox("Selecciona la primera entidad:", entidades_disponibles, key="entidad_1")
-    entidad_2 = st.selectbox("Selecciona la segunda entidad:", entidades_disponibles, key="entidad_2")
+        if entidad_1 and entidad_2:
+            # Consulta para la primera entidad
+            query_filtrado_1 = f"""
+                SELECT 
+                    DATE_TRUNC('month', h.fecha) AS mes,
+                    SUM(h.muertos) AS total_muertos
+                FROM hechos h
+                JOIN municipios m ON h.id_municipio = m.id_municipio
+                JOIN entidades e ON m.id_entidad = e.id_entidad
+                WHERE e.nombre_entidad = '{entidad_1}'
+                GROUP BY mes
+                ORDER BY mes;
+            """
+            df_entidad_1 = execute_query(query_filtrado_1)
 
-    if entidad_1 and entidad_2:
-        # Consulta para la primera entidad
-        query_filtrado_1 = f"""
-            SELECT 
-                DATE_TRUNC('month', h.fecha) AS mes,
-                SUM(h.muertos) AS total_muertos
-            FROM hechos h
-            JOIN municipios m ON h.id_municipio = m.id_municipio
-            JOIN entidades e ON m.id_entidad = e.id_entidad
-            WHERE e.nombre_entidad = '{entidad_1}'
-            GROUP BY mes
-            ORDER BY mes;
-        """
-        df_entidad_1 = execute_query(query_filtrado_1)
+            # Consulta para la segunda entidad
+            query_filtrado_2 = f"""
+                SELECT 
+                    DATE_TRUNC('month', h.fecha) AS mes,
+                    SUM(h.muertos) AS total_muertos
+                FROM hechos h
+                JOIN municipios m ON h.id_municipio = m.id_municipio
+                JOIN entidades e ON m.id_entidad = e.id_entidad
+                WHERE e.nombre_entidad = '{entidad_2}'
+                GROUP BY mes
+                ORDER BY mes;
+            """
+            df_entidad_2 = execute_query(query_filtrado_2)
 
-        # Consulta para la segunda entidad
-        query_filtrado_2 = f"""
-            SELECT 
-                DATE_TRUNC('month', h.fecha) AS mes,
-                SUM(h.muertos) AS total_muertos
-            FROM hechos h
-            JOIN municipios m ON h.id_municipio = m.id_municipio
-            JOIN entidades e ON m.id_entidad = e.id_entidad
-            WHERE e.nombre_entidad = '{entidad_2}'
-            GROUP BY mes
-            ORDER BY mes;
-        """
-        df_entidad_2 = execute_query(query_filtrado_2)
+            if df_entidad_1 is not None and df_entidad_2 is not None:
+                # Convertir las fechas truncadas a datetime
+                df_entidad_1['mes'] = pd.to_datetime(df_entidad_1['mes'])
+                df_entidad_2['mes'] = pd.to_datetime(df_entidad_2['mes'])
 
-        if df_entidad_1 is not None and df_entidad_2 is not None:
-            # Convertir las fechas truncadas a datetime
-            df_entidad_1['mes'] = pd.to_datetime(df_entidad_1['mes'])
-            df_entidad_2['mes'] = pd.to_datetime(df_entidad_2['mes'])
+                # Unir ambos DataFrames para comparación
+                df_comparativa = pd.merge(
+                    df_entidad_1.rename(columns={"total_muertos": f"{entidad_1}"}),
+                    df_entidad_2.rename(columns={"total_muertos": f"{entidad_2}"}),
+                    on="mes",
+                    how="outer"
+                ).fillna(0)
 
-            # Unir ambos DataFrames para comparación
-            df_comparativa = pd.merge(
-                df_entidad_1.rename(columns={"total_muertos": f"{entidad_1}"}),
-                df_entidad_2.rename(columns={"total_muertos": f"{entidad_2}"}),
-                on="mes",
-                how="outer"
-            ).fillna(0)
+                # Crear columnas para dividir el espacio
+                
 
-            # Crear columnas para dividir el espacio
-            col1, col2 = st.columns([3, 2])  # Ajustar tamaño de columnas
-
-            with col1:
-                # Graficar la comparación
+                
+                    # Graficar la comparación
                 st.line_chart(
                     df_comparativa.set_index("mes"),
                     width=700,
@@ -333,10 +354,10 @@ with tab3:
             with col2:
                 # Gráfica de barras general para todas las entidades
                 st.subheader("Total de Homicidios por Entidad")
-                total_por_entidad = df_total_muertos[['entidad', 'total_muertos']].sort_values(by='total_muertos', ascending=False)
+                total_por_entidad = df_total_muertos[['Entidad', 'Total Muertos']].sort_values(by='Total Muertos', ascending=False)
 
                 st.bar_chart(
-                    total_por_entidad.set_index("entidad"),
+                    total_por_entidad.set_index("Entidad"),
                     width=500,
                     height=400
                 )
